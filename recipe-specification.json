@@ -54,5 +54,17 @@
       "minimumValue"
     ],
     "type": "object"
-  }
+  },
+  "permissions": [
+    {
+      "id": "transaction_signing",
+      "label": "Access to transaction signing",
+      "description": "The app can initiate transactions to claim rewards from the Merkle distributor"
+    },
+    {
+      "id": "balance_visibility",
+      "label": "Vault balance visibility",
+      "description": "The app can view Vault balances"
+    }
+  ]
 }

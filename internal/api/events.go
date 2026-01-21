@@ -9,6 +9,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
+
 	"github.com/vultisig/pluginagent/types"
 )
 
@@ -193,7 +194,6 @@ func (s *Server) handleSystemEventsSubscription(client *ClientConnection, req Su
 				}
 			}
 		}
-
 	}()
 }
 
@@ -209,7 +209,7 @@ func (s *Server) convertToEventMessage(event types.SystemEvent) EventMessage {
 		PublicKey: event.PublicKey,
 		PolicyID:  policyIDStr,
 		EventType: event.EventType,
-		EventData: json.RawMessage(event.EventData),
+		EventData: event.EventData,
 		CreatedAt: event.CreatedAt,
 	}
 }

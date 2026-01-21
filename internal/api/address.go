@@ -4,9 +4,20 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+
 	"github.com/vultisig/vultisig-go/address"
 	"github.com/vultisig/vultisig-go/common"
 )
+
+type ErrorResponse struct {
+	Message string `json:"message"`
+}
+
+func NewErrorResponse(message string) ErrorResponse {
+	return ErrorResponse{
+		Message: message,
+	}
+}
 
 type DeriveAddressResponse struct {
 	Address       string `json:"address"`

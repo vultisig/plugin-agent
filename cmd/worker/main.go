@@ -4,18 +4,26 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/hibiken/asynq"
-	"github.com/sirupsen/logrus"
+	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/vultisig/pluginagent/config"
-	"github.com/vultisig/pluginagent/storage"
-	"github.com/vultisig/pluginagent/storage/interfaces"
-	"github.com/vultisig/pluginagent/types"
+	"github.com/vultisig/verifier/plugin"
 	"github.com/vultisig/verifier/plugin/tasks"
+	"github.com/vultisig/verifier/plugin/tx_indexer"
+	tx_storage "github.com/vultisig/verifier/plugin/tx_indexer/pkg/storage"
 	vtypes "github.com/vultisig/verifier/types"
 	"github.com/vultisig/verifier/vault"
+
+	"github.com/vultisig/pluginagent/internal/config"
+	"github.com/vultisig/pluginagent/internal/health"
+	"github.com/vultisig/pluginagent/internal/logging"
+	"github.com/vultisig/pluginagent/internal/storage"
+	"github.com/vultisig/pluginagent/internal/storage/interfaces"
+	"github.com/vultisig/pluginagent/types"
 )
 
 func main() {
@@ -23,32 +31,21 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	logger := logging.NewLogger(cfg.LogFormat)
 
-	redisCfg := cfg.Redis
-	redisOptions := asynq.RedisClientOpt{
-		Addr:     net.JoinHostPort(redisCfg.Host, redisCfg.Port),
-		Username: redisCfg.User,
-		Password: redisCfg.Password,
-		DB:       redisCfg.DB,
-	}
-
-	db, err := storage.NewDatabaseStorage(storage.StorageConfig{
-		Type: storage.StorageTypePostgreSQL,
-		DSN:  cfg.Database.DSN,
-	})
-	if err != nil {
-		panic(fmt.Sprintf("failed to initialize redis storage: %v", err))
-	}
-
-	logger := logrus.StandardLogger()
-	client := asynq.NewClient(redisOptions)
 	vaultStorage, err := vault.NewBlockStorageImp(cfg.BlockStorage)
 	if err != nil {
-		panic(fmt.Sprintf("failed to initialize vault storage: %v", err))
+		logger.Fatalf("failed to initialize vault storage: %v", err)
 	}
 
-	srv := asynq.NewServer(
-		redisOptions,
+	redisConnOpt, err := asynq.ParseRedisURI(cfg.Redis.URI)
+	if err != nil {
+		logger.Fatalf("failed to parse redis URI: %v", err)
+	}
+
+	client := asynq.NewClient(redisConnOpt)
+	consumer := asynq.NewServer(
+		redisConnOpt,
 		asynq.Config{
 			Logger:      logger,
 			Concurrency: 10,
@@ -58,16 +55,69 @@ func main() {
 		},
 	)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Handle graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		cancel()
+	}()
+
+	pgPool, err := pgxpool.New(ctx, cfg.Database.DSN)
+	if err != nil {
+		logger.Fatalf("failed to initialize Postgres pool: %v", err)
+	}
+
+	db, err := storage.NewDatabaseStorage(logger, storage.StorageConfig{
+		Type: storage.StorageTypePostgreSQL,
+		Pool: pgPool,
+	})
+	if err != nil {
+		logger.Fatalf("failed to initialize redis storage: %v", err)
+	}
+
+	txStorage, err := plugin.WithMigrations(
+		logger,
+		pgPool,
+		tx_storage.NewRepo,
+		"tx_indexer/pkg/storage/migrations",
+	)
+	if err != nil {
+		logger.Fatalf("failed to initialize Postgres pool: %v", err)
+	}
+
+	supportedChains, err := tx_indexer.Chains()
+	if err != nil {
+		logger.Fatalf("failed to get supported chains: %v", err)
+	}
+
+	txIndexerService := tx_indexer.NewService(
+		logger,
+		txStorage,
+		supportedChains,
+	)
+
 	vaultMgmService, err := vault.NewManagementService(
 		cfg.VaultService,
 		client,
-		nil,
 		vaultStorage,
+		txIndexerService,
 		nil,
 	)
 
+	healthServer := health.New(cfg.HealthPort)
+	go func() {
+		er := healthServer.Start(ctx, logger)
+		if er != nil {
+			logger.Errorf("health server failed: %v", er)
+		}
+	}()
+
 	if err != nil {
-		panic(fmt.Sprintf("failed to initialize vault management service: %v", err))
+		logger.Fatalf("failed to initialize vault management service: %v", err)
 	}
 
 	mux := asynq.NewServeMux()
@@ -75,8 +125,9 @@ func main() {
 	mux.HandleFunc(tasks.TypeKeySignDKLS, resultWriter(db, vaultMgmService.HandleKeySignDKLS))
 	mux.HandleFunc(tasks.TypeReshareDKLS, resultWriter(db, vaultMgmService.HandleReshareDKLS))
 
-	if err := srv.Run(mux); err != nil {
-		panic(fmt.Errorf("could not run server: %w", err))
+	err = consumer.Run(mux)
+	if err != nil {
+		logger.Fatalf("failed to run consumer: %v", err)
 	}
 }
 

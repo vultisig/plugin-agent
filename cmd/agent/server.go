@@ -1,16 +1,25 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"net"
 
 	"github.com/hibiken/asynq"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sirupsen/logrus"
-	"github.com/vultisig/pluginagent/api"
-	"github.com/vultisig/pluginagent/config"
-	"github.com/vultisig/pluginagent/storage"
+	"github.com/vultisig/pluginagent/internal/api"
+	"github.com/vultisig/pluginagent/internal/policy"
+	"github.com/vultisig/verifier/plugin"
+	vpolicy "github.com/vultisig/verifier/plugin/policy"
+	"github.com/vultisig/verifier/plugin/policy/policy_pg"
+	"github.com/vultisig/verifier/plugin/redis"
+	"github.com/vultisig/verifier/plugin/scheduler"
+
 	"github.com/vultisig/verifier/vault"
 	vgrelay "github.com/vultisig/vultisig-go/relay"
+
+	"github.com/vultisig/pluginagent/internal/config"
+	"github.com/vultisig/pluginagent/internal/storage"
 )
 
 func main() {
@@ -20,41 +29,60 @@ func main() {
 	}
 	logger := logrus.New()
 
-	redisStorage, err := storage.NewRedisStorage(storage.WithConfig(storage.RedisConfig{
-		Host:     cfg.Redis.Host,
-		Port:     cfg.Redis.Port,
-		User:     cfg.Redis.User,
-		Password: cfg.Redis.Password,
-		DB:       cfg.Redis.DB,
-	}))
+	redisClient, err := redis.NewRedis(cfg.Redis)
 	if err != nil {
-		panic(err)
+		logger.Fatalf("failed to initialize Redis client: %v", err)
 	}
 
-	redisOptions := asynq.RedisClientOpt{
-		Addr:     net.JoinHostPort(cfg.Redis.Host, cfg.Redis.Port),
-		Username: cfg.Redis.User,
-		Password: cfg.Redis.Password,
-		DB:       cfg.Redis.DB,
+	asynqConnOpt, err := asynq.ParseRedisURI(cfg.Redis.URI)
+	if err != nil {
+		logger.Fatalf("failed to parse redis URI: %v", err)
 	}
 
-	client := asynq.NewClient(redisOptions)
+	client := asynq.NewClient(asynqConnOpt)
 	defer func() {
 		if err := client.Close(); err != nil {
 			fmt.Println("fail to close asynq client,", err)
 		}
 	}()
 
-	inspector := asynq.NewInspector(redisOptions)
+	inspector := asynq.NewInspector(asynqConnOpt)
 
 	vaultStorage, err := vault.NewBlockStorageImp(cfg.BlockStorage)
 	if err != nil {
 		panic(err)
 	}
 
-	db, err := storage.NewDatabaseStorage(storage.StorageConfig{
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	pgPool, err := pgxpool.New(ctx, cfg.Database.DSN)
+	if err != nil {
+		logger.Fatalf("failed to initialize Postgres pool: %v", err)
+	}
+
+	policyStorage, err := plugin.WithMigrations(
+		logger,
+		pgPool,
+		policy_pg.NewRepo,
+		"policy/policy_pg/migrations",
+	)
+	if err != nil {
+		logger.Fatalf("failed to initialize policy storage: %v", err)
+	}
+
+	policyService, err := vpolicy.NewPolicyService(
+		policyStorage,
+		scheduler.NewNilService(),
+		logger,
+	)
+	if err != nil {
+		logger.Fatalf("failed to initialize policy service: %v", err)
+	}
+
+	db, err := storage.NewDatabaseStorage(logger, storage.StorageConfig{
 		Type: storage.StorageTypePostgreSQL,
-		DSN:  cfg.Database.DSN,
+		Pool: pgPool,
 	})
 	if err != nil {
 		logger.Fatalf("Failed to connect to database: %v", err)
@@ -62,19 +90,26 @@ func main() {
 
 	relayClient := vgrelay.NewRelayClient(cfg.VaultService.Relay.Server)
 
+	spec, err := policy.NewAgentSpec(cfg.Plugin.SpecFilePath)
+	if err != nil {
+		logger.Fatalf("failed to initialize agent spec: %v", err)
+	}
+
 	server := api.NewServer(
 		cfg.Server,
 		cfg.Plugin,
 		db,
-		redisStorage,
+		policyService,
+		redisClient,
 		vaultStorage,
 		client,
 		inspector,
 		relayClient,
 		cfg.Verifier,
+		spec,
 	)
 
-	if err := server.StartServer(); err != nil {
+	if err := server.Start(ctx); err != nil {
 		panic(err)
 	}
 }

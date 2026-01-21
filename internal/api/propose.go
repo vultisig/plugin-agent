@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+
 	"github.com/vultisig/mobile-tss-lib/tss"
 	vtypes "github.com/vultisig/verifier/types"
 	vgcommon "github.com/vultisig/vultisig-go/common"
