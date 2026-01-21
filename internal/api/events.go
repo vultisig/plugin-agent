@@ -65,7 +65,10 @@ func (s *Server) GetEvents(c echo.Context) error {
 
 	s.logger.Info("WebSocket connected")
 	defer func() {
-		ws.Close()
+		err = ws.Close()
+		if err != nil {
+			s.logger.WithError(err).Error("WebSocket close failed")
+		}
 		s.logger.Info("WebSocket disconnected")
 	}()
 
@@ -119,10 +122,13 @@ func (s *Server) handleSystemEventsSubscription(client *ClientConnection, req Su
 	client.mutex.Unlock()
 
 	go func() {
-		s.sendMessage(client.ws, WebSocketMessage{
+		err := s.sendMessage(client.ws, WebSocketMessage{
 			Type: "subscription_confirmed",
 			Data: map[string]string{"channel": "system_events"},
 		})
+		if err != nil {
+			s.logger.WithError(err).Error("WebSocket send error")
+		}
 		client.replayMutex.Lock()
 		defer client.replayMutex.Unlock()
 
@@ -226,10 +232,13 @@ func (s *Server) sendMessage(ws *websocket.Conn, msg WebSocketMessage) error {
 }
 
 func (s *Server) sendError(ws *websocket.Conn, errorMsg string) {
-	s.sendMessage(ws, WebSocketMessage{
+	err := s.sendMessage(ws, WebSocketMessage{
 		Type: "error",
 		Data: map[string]string{"message": errorMsg},
 	})
+	if err != nil {
+		s.logger.WithError(err).Error("WebSocket send error")
+	}
 }
 
 func (s *Server) streamNewEvents() {
