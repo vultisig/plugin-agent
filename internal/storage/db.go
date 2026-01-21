@@ -5,8 +5,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sirupsen/logrus"
-	"github.com/vultisig/pluginagent/storage/interfaces"
-	"github.com/vultisig/pluginagent/storage/postgres"
+	"github.com/vultisig/pluginagent/internal/storage/interfaces"
+	"github.com/vultisig/pluginagent/internal/storage/postgres"
 )
 
 type StorageType string

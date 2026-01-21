@@ -4,8 +4,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/vultisig/pluginagent/storage/postgres/queries"
-	"github.com/vultisig/pluginagent/types"
+	"github.com/vultisig/pluginagent/internal/storage/postgres/queries"
+	"github.com/vultisig/pluginagent/internal/types"
 )
 
 func toTypesSystemEvent(row queries.SystemEvent) (*types.SystemEvent, error) {

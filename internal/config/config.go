@@ -7,7 +7,7 @@ import (
 	"github.com/vultisig/verifier/plugin/server"
 	"github.com/vultisig/verifier/vault_config"
 
-	"github.com/vultisig/pluginagent/logging"
+	"github.com/vultisig/pluginagent/internal/logging"
 )
 
 type Config struct {

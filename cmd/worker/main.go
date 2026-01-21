@@ -23,7 +23,7 @@ import (
 	"github.com/vultisig/pluginagent/internal/logging"
 	"github.com/vultisig/pluginagent/internal/storage"
 	"github.com/vultisig/pluginagent/internal/storage/interfaces"
-	"github.com/vultisig/pluginagent/types"
+	"github.com/vultisig/pluginagent/internal/types"
 )
 
 func main() {

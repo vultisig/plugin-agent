@@ -24,7 +24,7 @@ import (
 	vgrelay "github.com/vultisig/vultisig-go/relay"
 
 	"github.com/vultisig/pluginagent/internal/config"
-	"github.com/vultisig/pluginagent/storage/interfaces"
+	"github.com/vultisig/pluginagent/internal/storage/interfaces"
 )
 
 type Server struct {

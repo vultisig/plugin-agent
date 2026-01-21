@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 
-	"github.com/vultisig/pluginagent/types"
+	"github.com/vultisig/pluginagent/internal/types"
 )
 
 type WebSocketMessage struct {

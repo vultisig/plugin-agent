@@ -14,9 +14,9 @@ import (
 	"github.com/vultisig/verifier/plugin"
 	"github.com/vultisig/verifier/plugin/policy/policy_pg"
 
-	"github.com/vultisig/pluginagent/storage/interfaces"
-	"github.com/vultisig/pluginagent/storage/postgres/queries"
-	"github.com/vultisig/pluginagent/types"
+	"github.com/vultisig/pluginagent/internal/storage/interfaces"
+	"github.com/vultisig/pluginagent/internal/storage/postgres/queries"
+	"github.com/vultisig/pluginagent/internal/types"
 )
 
 var _ interfaces.DatabaseStorage = (*Storage)(nil)

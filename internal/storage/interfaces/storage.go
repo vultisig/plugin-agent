@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/vultisig/pluginagent/types"
+	"github.com/vultisig/pluginagent/internal/types"
 )
 
 // DatabaseStorage defines the interface for database storage operations
