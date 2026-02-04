@@ -54,6 +54,7 @@ func NewServer(
 	relayClient *vgrelay.Client,
 	verifierCfg plugin_config.Verifier,
 	spec plugin.Spec,
+	vaultLocalPartyPrefix string,
 ) *Server {
 	logger := logrus.WithField("service", "plugin").Logger
 
@@ -62,11 +63,11 @@ func NewServer(
 		relayClient,
 		[]keysign.Emitter{
 			keysign.NewVerifierEmitter(verifierCfg.URL, verifierCfg.Token),
-			keysign.NewPluginEmitter(client, tasks.TypeKeySignDKLS, tasks.QUEUE_NAME),
+			keysign.NewPluginEmitter(client, tasks.TypeKeySignDKLS, cfg.TaskQueueName),
 		},
 		[]string{
 			verifierCfg.PartyPrefix,
-			"vultisig-tester-ae1d",
+			vaultLocalPartyPrefix,
 		},
 	)
 

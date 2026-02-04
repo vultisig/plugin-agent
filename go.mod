@@ -13,8 +13,8 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.20.1
 	github.com/vultisig/mobile-tss-lib v0.0.0-20250316003201-2e7e570a4a74
-	github.com/vultisig/recipes v0.0.0-20260120151228-f8985632c2e0
-	github.com/vultisig/verifier v0.1.17-0.20260121062711-4be3fc762923
+	github.com/vultisig/recipes v0.0.0-20260129020926-577976dfb292
+	github.com/vultisig/verifier v0.1.20-0.20260201171041-7ba63b031409
 	github.com/vultisig/vultisig-go v0.0.0-20260114092710-6c38516a0c85
 	golang.org/x/sync v0.16.0
 	google.golang.org/protobuf v1.36.8
@@ -53,8 +53,6 @@ require (
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0 // indirect
 	github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f // indirect
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce // indirect
-	github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd // indirect
-	github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.14.2 // indirect
 	github.com/bytedance/sonic/loader v0.4.0 // indirect
@@ -229,7 +227,7 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/vultisig/commondata v0.0.0-20250710214228-61d9ed8f7778 // indirect
-	github.com/vultisig/go-wrappers v0.0.0-20260106233302-7e12f0dd6a93 // indirect
+	github.com/vultisig/go-wrappers v0.0.0-20260116015747-e12e4d06cf57 // indirect
 	github.com/vultisig/vultiserver v0.0.0-20250825042420-c6e6ac281110 // indirect
 	github.com/xyield/xrpl-go v0.0.0-20230914223425-9abe75c05830 // indirect
 	github.com/zondax/hid v0.9.2 // indirect

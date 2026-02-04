@@ -107,6 +107,7 @@ func main() {
 		relayClient,
 		cfg.Verifier,
 		spec,
+		cfg.VaultService.LocalPartyPrefix,
 	)
 
 	if err := server.Start(ctx); err != nil {

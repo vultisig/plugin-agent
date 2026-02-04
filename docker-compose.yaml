@@ -1,0 +1,57 @@
+services:
+  plugin-db: # One DB instance for all plugins, which point to different databases
+    image: postgres:15
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: vultisig-agent
+    ports:
+      - "5431:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-d", "vultisig-agent", "-U", "myuser" ]
+      interval: 1s
+      timeout: 5s
+      retries: 3
+    networks:
+      - shared_network
+
+  redis-agent:
+    image: redis:latest
+    ports:
+      - "6378:6379"
+    networks:
+      - shared_network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 1s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - redis_agent:/data
+
+  minio-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.minio
+      platforms:
+        - linux/amd64
+    ports:
+      - "9100:9000" # s3 api
+      - "9091:9090" # console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    networks:
+      - shared_network
+
+volumes:
+  db_data:
+  minio_data:
+  redis_agent:
+networks:
+  shared_network:
+    external: true

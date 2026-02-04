@@ -1,6 +1,10 @@
 package config
 
 import (
+	"fmt"
+	"os"
+	"strings"
+
 	"github.com/spf13/viper"
 
 	plugin_config "github.com/vultisig/verifier/plugin/config"
@@ -28,37 +32,38 @@ type PluginConfig struct {
 }
 
 func LoadServerConfig() (*Config, error) {
-	cfg := &Config{}
+	configName := os.Getenv("VS_SERVER_CONFIG_NAME")
+	if configName == "" {
+		configName = "config"
+	}
 
-	viper.SetConfigName("agent")
-	viper.SetConfigType("yaml")
+	return ReadConfig(configName)
+}
+
+func ReadConfig(configName string) (*Config, error) {
+	viper.SetConfigName(configName)
 	viper.AddConfigPath(".")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
+
+	viper.SetDefault("Server.VaultsFilePath", "vaults")
 
 	if err := viper.ReadInConfig(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read config file, %w", err)
 	}
-
-	if err := viper.Unmarshal(cfg); err != nil {
-		return nil, err
+	var cfg Config
+	err := viper.Unmarshal(&cfg)
+	if err != nil {
+		return nil, fmt.Errorf("unable to decode into struct, %w", err)
 	}
-
-	return cfg, nil
+	return &cfg, nil
 }
 
 func LoadWorkerConfig() (*Config, error) {
-	cfg := &Config{}
-
-	viper.SetConfigName("agent")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
-
-	if err := viper.ReadInConfig(); err != nil {
-		return nil, err
+	configName := os.Getenv("VS_WORKER_CONFIG_NAME")
+	if configName == "" {
+		configName = "config"
 	}
 
-	if err := viper.Unmarshal(cfg); err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
+	return ReadConfig(configName)
 }

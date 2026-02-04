@@ -3,38 +3,38 @@
     "relay": {
       "server": "https://api.vultisig.com/router"
     },
-    "local_party_prefix": "verifier",
+    "local_party_prefix": "default-agent-0000",
     "encryption_secret": "test123",
-    "do_setup_msg": false
+    "do_setup_msg": true
   },
   "redis": {
+    "uri": "redis://localhost:6378",
     "host": "localhost",
-    "port": "6379"
+    "port": "6378"
   },
   "block_storage": {
-    "host": "http://localhost:9000",
+    "host": "http://localhost:9100",
     "region": "us-east-1",
     "access_key": "minioadmin",
     "secret": "minioadmin",
-    "bucket": "vultisig-verifier"
+    "bucket": "vultisig-agent"
   },
   "database": {
-    "dsn": "postgres://myuser:mypassword@localhost:5432/vultisig-verifier?sslmode=disable"
-  },
-  "datadog": {
-    "host": "localhost",
-    "port": "8125"
+    "dsn": "postgres://myuser:mypassword@localhost:5431/vultisig-agent?sslmode=disable"
   },
   "plugin": {
-    "plugin_id": "nbits-labs-merkle-e93d",
+    "plugin_id": "default-agent-0000",
     "file_path": "./recipe-specification.json"
   },
   "server": {
-    "port": 8080
+    "port": 8081,
+    "encryption_secret": "test123",
+    "task_queue_name": "test_queue"
   },
   "verifier": {
-    "url": "https://verifier.vultisig.com",
-    "token": "",
+    "url": "http://localhost:8080",
+    "token": "localhost-agent-apikey",
     "party_prefix": "verifier"
-  }
+  },
+  "health_port": 8090
 }

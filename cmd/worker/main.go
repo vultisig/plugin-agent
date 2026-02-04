@@ -50,7 +50,7 @@ func main() {
 			Logger:      logger,
 			Concurrency: 10,
 			Queues: map[string]int{
-				tasks.QUEUE_NAME: 10,
+				cfg.Server.TaskQueueName: 10,
 			},
 		},
 	)
