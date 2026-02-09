@@ -17,6 +17,19 @@ services:
     networks:
       - shared_network
 
+  db-init:
+    image: postgres:15
+    depends_on:
+      plugin-db:
+        condition: service_healthy
+    command: >
+      bash -c "psql -h plugin-db -U myuser -d postgres -tc \"SELECT 1 FROM pg_database WHERE datname = 'vultisig-verifier'\" | grep -q 1 || psql -h plugin-db -U myuser -d postgres -c 'CREATE DATABASE \"vultisig-verifier\"'"
+    environment:
+      PGPASSWORD: mypassword
+    networks:
+      - shared_network
+    restart: "no"
+
   redis-agent:
     image: redis:latest
     ports:
@@ -45,6 +58,113 @@ services:
       MINIO_ROOT_PASSWORD: minioadmin
     volumes:
       - minio_data:/data
+    networks:
+      - shared_network
+
+  verifier:
+    image: ghcr.io/vultisig/verifier/verifier:latest
+    platform: linux/amd64
+    command: ["./main"]
+    environment:
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8080
+      SERVER_JWT_SECRET: dev-jwt-secret-change-in-production
+      DATABASE_DSN: postgres://myuser:mypassword@plugin-db:5432/vultisig-verifier?sslmode=disable
+      REDIS_URI: redis://redis-agent:6379
+      BLOCK_STORAGE_HOST: http://minio-agent:9000
+      BLOCK_STORAGE_REGION: us-east-1
+      BLOCK_STORAGE_ACCESS_KEY: minioadmin
+      BLOCK_STORAGE_SECRET: minioadmin
+      BLOCK_STORAGE_BUCKET: vultisig-verifier
+      ENCRYPTION_SECRET: dev-encryption-secret-change-in-production
+      LOG_FORMAT: json
+      AUTH_NONCE_EXPIRY_MINUTES: 15
+      AUTH_ENABLED: "true"
+      METRICS_ENABLED: "true"
+      METRICS_HOST: 0.0.0.0
+      METRICS_PORT: 8088
+      FEES_USDC_ADDRESS: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+      PLUGIN_ASSETS_HOST: http://minio-agent:9000
+      PLUGIN_ASSETS_REGION: us-east-1
+      PLUGIN_ASSETS_ACCESS_KEY: minioadmin
+      PLUGIN_ASSETS_SECRET: minioadmin
+      PLUGIN_ASSETS_BUCKET: vultisig-plugin-assets
+      PLUGIN_ASSETS_PUBLIC_BASE_URL: http://localhost:9100/vultisig-plugin-assets
+    ports:
+      - "8080:8080"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      redis-agent:
+        condition: service_healthy
+      minio-agent:
+        condition: service_started
+    networks:
+      - shared_network
+
+  verifier-worker:
+    image: ghcr.io/vultisig/verifier/worker:latest
+    platform: linux/amd64
+    command: ["./main"]
+    environment:
+      VAULT_SERVICE_RELAY_SERVER: https://api.vultisig.com
+      VAULT_SERVICE_LOCAL_PARTY_PREFIX: server
+      VAULT_SERVICE_ENCRYPTION_SECRET: dev-encryption-secret-change-in-production
+      VAULT_SERVICE_DO_SETUP_MSG: "false"
+      DATABASE_DSN: postgres://myuser:mypassword@plugin-db:5432/vultisig-verifier?sslmode=disable
+      REDIS_URI: redis://redis-agent:6379
+      BLOCK_STORAGE_HOST: http://minio-agent:9000
+      BLOCK_STORAGE_REGION: us-east-1
+      BLOCK_STORAGE_ACCESS_KEY: minioadmin
+      BLOCK_STORAGE_SECRET: minioadmin
+      BLOCK_STORAGE_BUCKET: vultisig-verifier
+      LOG_FORMAT: json
+      HEALTH_PORT: 80
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      redis-agent:
+        condition: service_healthy
+      minio-agent:
+        condition: service_started
+    networks:
+      - shared_network
+
+  tx-indexer:
+    image: ghcr.io/vultisig/verifier/tx_indexer:latest
+    platform: linux/amd64
+    command: ["./main"]
+    environment:
+      DATABASE_DSN: postgres://myuser:mypassword@plugin-db:5432/vultisig-verifier?sslmode=disable
+      REDIS_URI: redis://redis-agent:6379
+      LOG_FORMAT: json
+      INTERVAL: 10s
+      ITERATION_TIMEOUT: 3m
+      MARK_LOST_AFTER: 3h
+      CONCURRENCY: 50
+      METRICS_ENABLED: "true"
+      METRICS_HOST: 0.0.0.0
+      METRICS_PORT: 8088
+      # RPC URLs - configure based on your needs
+      RPC_XRP_URL: https://s1.ripple.com:51234
+      RPC_ETHEREUM_URL: https://eth.llamarpc.com
+      RPC_ARBITRUM_URL: https://arb1.arbitrum.io/rpc
+      RPC_AVALANCHE_URL: https://api.avax.network/ext/bc/C/rpc
+      RPC_BSC_URL: https://bsc-dataseed.binance.org
+      RPC_BASE_URL: https://mainnet.base.org
+      RPC_BLAST_URL: https://rpc.blast.io
+      RPC_OPTIMISM_URL: https://mainnet.optimism.io
+      RPC_POLYGON_URL: https://polygon-rpc.com
+      RPC_SOLANA_URL: https://api.mainnet-beta.solana.com
+      RPC_LITECOIN_URL: ""
+      RPC_DOGECOIN_URL: ""
+      RPC_BITCOINCASH_URL: ""
+      RPC_THORCHAIN_URL: ""
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      redis-agent:
+        condition: service_healthy
     networks:
       - shared_network
 
