@@ -1,0 +1,55 @@
+name: Build and Release to GHCR
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Docker image tag to publish"
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-agent:
+    uses: ./.github/workflows/build-push-image.yaml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      service: agent
+      registry: ghcr.io
+      image_name: ${{ github.repository }}
+      tag: ${{ inputs.tag || github.event.release.tag_name }}
+      additional_tag: latest
+
+  build-worker:
+    uses: ./.github/workflows/build-push-image.yaml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      service: worker
+      registry: ghcr.io
+      image_name: ${{ github.repository }}
+      tag: ${{ inputs.tag || github.event.release.tag_name }}
+      additional_tag: latest
+
+  set-public:
+    needs: [build-agent, build-worker]
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Set GHCR packages public
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          owner="${{ github.repository_owner }}"
+          repo="${{ github.event.repository.name }}"
+          gh api -X PATCH "/orgs/${owner}/packages/container/${repo}%2Fagent/visibility" -f visibility=public || true
+          gh api -X PATCH "/orgs/${owner}/packages/container/${repo}%2Fworker/visibility" -f visibility=public || true
