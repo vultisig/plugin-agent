@@ -27,6 +27,19 @@ type DeriveAddressResponse struct {
 	ChainCode     string `json:"chain_code"`
 }
 
+// DeriveAddress godoc
+// @Summary Derive address from public key
+// @Description Derives a blockchain address from an ECDSA public key and chain code using BIP32 derivation
+// @Tags Plugin Agent
+// @Accept json
+// @Produce json
+// @Param publicKeyECDSA query string true "ECDSA public key in hex format"
+// @Param hexChainCode query string true "Chain code in hex format for BIP32 derivation"
+// @Param chain query string true "Chain name (e.g., ETH, BTC, BSC)"
+// @Success 200 {object} DeriveAddressResponse "Successfully derived address"
+// @Failure 400 {object} ErrorResponse "Invalid chain or parameters"
+// @Failure 500 {object} ErrorResponse "Failed to derive address"
+// @Router /address/derive [get]
 func (s *Server) DeriveAddress(c echo.Context) error {
 	publicKeyECDSA := c.QueryParam("publicKeyECDSA")
 	hexChainCode := c.QueryParam("hexChainCode")

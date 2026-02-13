@@ -21,6 +21,19 @@ type ProposalResponse struct {
 	Signature tss.KeysignResponse `json:"signature"`
 }
 
+// Propose godoc
+// @Summary Propose transaction for signing
+// @Description Proposes an unsigned transaction to the plugin agent for synchronous signing. The agent validates the transaction against the policy and returns a signature.
+// @Tags Plugin Agent
+// @Accept json
+// @Produce json
+// @Param policy_id query string true "UUID of the plugin policy"
+// @Param network query string true "Network name (e.g., Ethereum, BSC)"
+// @Param tx_hex query string true "Unsigned transaction hex (without 0x prefix)"
+// @Success 200 {object} ProposalResponse "Successfully signed transaction"
+// @Failure 400 {object} ErrorResponse "Invalid request parameters"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /propose [post]
 func (s *Server) Propose(c echo.Context) error {
 	policyID := c.QueryParam("policy_id")
 	network := c.QueryParam("network")

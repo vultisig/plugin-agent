@@ -30,6 +30,21 @@ services:
       - shared_network
     restart: "no"
 
+  verifier-db-seed:
+    image: postgres:15
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./seed-verifier-db.sql:/seed.sql:ro
+    command: >
+      bash -c "sleep 2 && psql -h plugin-db -U myuser -d vultisig-verifier -f /seed.sql"
+    environment:
+      PGPASSWORD: mypassword
+    networks:
+      - shared_network
+    restart: "no"
+
   redis-agent:
     image: redis:latest
     ports:
@@ -65,6 +80,8 @@ services:
     image: ghcr.io/vultisig/verifier/verifier:latest
     platform: linux/amd64
     command: ["./main"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 8080
@@ -76,7 +93,7 @@ services:
       BLOCK_STORAGE_ACCESS_KEY: minioadmin
       BLOCK_STORAGE_SECRET: minioadmin
       BLOCK_STORAGE_BUCKET: vultisig-verifier
-      ENCRYPTION_SECRET: dev-encryption-secret-change-in-production
+      ENCRYPTION_SECRET: test123
       LOG_FORMAT: json
       AUTH_NONCE_EXPIRY_MINUTES: 15
       AUTH_ENABLED: "true"
@@ -93,7 +110,7 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      db-init:
+      verifier-db-seed:
         condition: service_completed_successfully
       redis-agent:
         condition: service_healthy
@@ -106,10 +123,12 @@ services:
     image: ghcr.io/vultisig/verifier/worker:latest
     platform: linux/amd64
     command: ["./main"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
-      VAULT_SERVICE_RELAY_SERVER: https://api.vultisig.com
-      VAULT_SERVICE_LOCAL_PARTY_PREFIX: server
-      VAULT_SERVICE_ENCRYPTION_SECRET: dev-encryption-secret-change-in-production
+      VAULT_SERVICE_RELAY_SERVER: https://api.vultisig.com/router
+      VAULT_SERVICE_LOCAL_PARTY_PREFIX: verifier
+      VAULT_SERVICE_ENCRYPTION_SECRET: test123
       VAULT_SERVICE_DO_SETUP_MSG: "false"
       DATABASE_DSN: postgres://myuser:mypassword@plugin-db:5432/vultisig-verifier?sslmode=disable
       REDIS_URI: redis://redis-agent:6379
@@ -121,7 +140,7 @@ services:
       LOG_FORMAT: json
       HEALTH_PORT: 80
     depends_on:
-      db-init:
+      verifier-db-seed:
         condition: service_completed_successfully
       redis-agent:
         condition: service_healthy
@@ -134,6 +153,8 @@ services:
     image: ghcr.io/vultisig/verifier/tx_indexer:latest
     platform: linux/amd64
     command: ["./main"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       DATABASE_DSN: postgres://myuser:mypassword@plugin-db:5432/vultisig-verifier?sslmode=disable
       REDIS_URI: redis://redis-agent:6379
@@ -161,7 +182,7 @@ services:
       RPC_BITCOINCASH_URL: ""
       RPC_THORCHAIN_URL: ""
     depends_on:
-      db-init:
+      verifier-db-seed:
         condition: service_completed_successfully
       redis-agent:
         condition: service_healthy

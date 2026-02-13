@@ -145,6 +145,13 @@ func (s *Server) Start(ctx context.Context) error {
 	return eg.Wait()
 }
 
+// Ping godoc
+// @Summary Health check
+// @Description Returns a simple health check response to verify the plugin agent is running
+// @Tags Health
+// @Produce plain
+// @Success 200 {string} string "Plugin agent is running"
+// @Router /ping [get]
 func (s *Server) Ping(c echo.Context) error {
 	return c.String(http.StatusOK, "Plugin agent is running")
 }
