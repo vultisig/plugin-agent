@@ -29,12 +29,12 @@ type ProposalResponse struct {
 
 // KeysignResponse from mobile-tss-lib
 type KeysignResponse struct {
-	R          string `json:"r"`
-	S          string `json:"s"`
-	RecoveryID string `json:"recovery_id"`
-	RBytes     []byte `json:"r_bytes"`
-	SBytes     []byte `json:"s_bytes"`
-	DerSign    []byte `json:"der_signature"`
+	R          string          `json:"r"`
+	S          string          `json:"s"`
+	RecoveryID string          `json:"recovery_id"`
+	RBytes     json.RawMessage `json:"r_bytes,omitempty"`
+	SBytes     json.RawMessage `json:"s_bytes,omitempty"`
+	DerSign    json.RawMessage `json:"der_signature,omitempty"`
 }
 
 type IntegrationTest struct {

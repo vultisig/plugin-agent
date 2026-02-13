@@ -25,3 +25,16 @@ fee_config.json
 
 agent.json
 agent.yaml
+
+# Build artifacts
+bin/
+
+# Swagger generated docs
+docs/swagger/
+
+# Testdata
+testdata/**/.env
+testdata/**/node_modules/
+testdata/**/dist/
+testdata/**/package-lock.json
+testdata/**/*.log

@@ -54,6 +54,50 @@ var (
 	streamEventsMutex   = sync.RWMutex{}
 )
 
+// GetEvents godoc
+// @Summary WebSocket event streaming
+// @Description Establishes a WebSocket connection for real-time system event streaming. Clients can subscribe to channels and receive events.
+// @Tags Plugin Agent
+// @Accept json
+// @Produce json
+// @Success 101 {object} WebSocketMessage "WebSocket connection established"
+// @Failure 400 {object} ErrorResponse "Invalid WebSocket upgrade"
+// @Router /events [get]
+// @Description WebSocket Protocol:
+// @Description
+// @Description Subscribe to events:
+// @Description ```json
+// @Description {
+// @Description   "type": "subscribe",
+// @Description   "data": {
+// @Description     "channel": "system_events",
+// @Description     "last_seen": 1234567890
+// @Description   }
+// @Description }
+// @Description ```
+// @Description
+// @Description Receive subscription confirmation:
+// @Description ```json
+// @Description {
+// @Description   "type": "subscription_confirmed",
+// @Description   "data": { "channel": "system_events" }
+// @Description }
+// @Description ```
+// @Description
+// @Description Receive events:
+// @Description ```json
+// @Description {
+// @Description   "type": "event",
+// @Description   "data": {
+// @Description     "id": 123,
+// @Description     "public_key": "hex_string",
+// @Description     "policy_id": "uuid",
+// @Description     "event_type": "vault_reshare",
+// @Description     "event_data": {},
+// @Description     "created_at": "2024-01-01T00:00:00Z"
+// @Description   }
+// @Description }
+// @Description ```
 func (s *Server) GetEvents(c echo.Context) error {
 	s.logger.Info("GetEvents WebSocket upgrade")
 
